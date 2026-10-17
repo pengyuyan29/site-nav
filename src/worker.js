@@ -182,8 +182,10 @@ async function runScan(env, trigger) {
     seen.add(key);
     const url = await tryHttps(e.url);
     const { ok } = await probe(url);
+    const t = ok ? await fetchTitle(url) : "";
     sites.push({
       repo: e.repo, owner: e.owner || env.OWNER, url,
+      title: t || "",
       description: e.description || "", language: null, topics: [],
       pushed_at: null, status: ok ? "online" : "offline", manual: true,
     });
@@ -217,6 +219,33 @@ async function runScan(env, trigger) {
   return logEntry;
 }
 
+/** 抓取页面 <title>（用于展示真实站点标题，仓库名作回退） */
+const ENT = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", "#39": "'" };
+function decodeEnt(s) {
+  return s.replace(/&(#[xX]?[0-9a-fA-F]+|[a-zA-Z]+);/g, (_, e) => {
+    if (e[0] === "#") {
+      const num = e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+      return num ? String.fromCodePoint(num) : "";
+    }
+    return ENT[e] ?? e;
+  });
+}
+const GENERIC_TITLES = new Set(["加密页面", "password", "login", "登录", "untitled", "home"]);
+async function fetchTitle(url) {
+  try {
+    const r = await fetch(url, { headers: { "User-Agent": UA, Accept: "text/html" }, redirect: "follow" });
+    const ct = r.headers.get("content-type") || "";
+    if (!r.ok || (ct && !ct.includes("html"))) return "";
+    const html = (await r.text()).slice(0, 65536);
+    const m = html.match(/<title[^>]*>([\s\S]{0,300}?)<\/title>/i);
+    if (!m) return "";
+    let t = decodeEnt(m[1].replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim().slice(0, 80);
+    let host = ""; try { host = new URL(url).hostname; } catch {}
+    if (!t || t.toLowerCase() === host.toLowerCase() || GENERIC_TITLES.has(t.toLowerCase())) return "";
+    return t;
+  } catch { return ""; }
+}
+
 async function buildSite(repo, prev) {
   const name = repo.name;
   const owner = (repo.owner && repo.owner.login) || "";
@@ -234,10 +263,13 @@ async function buildSite(repo, prev) {
   }
   url = await tryHttps(url);
 
+  const title = ok ? await fetchTitle(url) : "";
+
   return {
     repo: name,
     owner,
     url,
+    title: title || prev.title || "",
     description: repo.description || prev.description || "",
     language: repo.language || null,
     topics: repo.topics || [],

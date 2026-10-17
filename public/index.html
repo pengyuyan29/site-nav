@@ -299,7 +299,7 @@ function renderTabs() {
 function match(s) {
   if (TAB !== 'all' && catOf(s) !== TAB) return false;
   if (!KW) return true;
-  const hay = [s.repo, s.description, s.url, s.owner, (s.topics || []).join(' ')].join(' ').toLowerCase();
+  const hay = [s.repo, s.title, s.description, s.url, s.owner, (s.topics || []).join(' ')].join(' ').toLowerCase();
   return KW.toLowerCase().split(/\s+/).every((w) => hay.includes(w));
 }
 function render() {
@@ -309,7 +309,7 @@ function render() {
     const cat = catOf(s);
     return `<a class="card" style="animation-delay:${Math.min(i * 30, 400)}ms" href="${esc(s.url)}" target="_blank" rel="noopener" title="${esc(s.url)}">
       <div class="card-top">${favHTML(s)}
-        <div class="card-title"><span class="t">${esc(s.repo)}</span>
+        <div class="card-title"${s.title ? ` title="${esc(s.repo)}"` : ''}><span class="t">${esc(s.title || s.repo)}</span>
           <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 17 17 7M9 7h8v8"/></svg>
         </div>
       </div>
