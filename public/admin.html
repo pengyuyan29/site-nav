@@ -328,11 +328,17 @@ $('#pwd').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#authBt
 $('#btnLogout').onclick = async () => { await POST('/api/logout'); showAuth(false); };
 
 /* ---------- favicon ---------- */
+window.favErr = (el) => {
+  if (el.dataset.fb === '1' || !el.dataset.avatar) { el.parentElement.classList.add('hide-img'); return; }
+  el.dataset.fb = '1';
+  el.src = el.dataset.avatar;
+};
 function favHTML(s) {
   let host = ''; try { host = new URL(s.url).origin; } catch {}
   const letter = (s.repo || '?').charAt(0).toUpperCase();
   const hue = [...(s.repo + (s.owner || ''))].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
-  const img = host ? `<img src="${host}/favicon.ico" loading="lazy" onerror="this.parentElement.classList.add('hide-img')">` : '';
+  const avatar = s.owner ? `https://github.com/${encodeURIComponent(s.owner)}.png?size=64` : '';
+  const img = host ? `<img src="${host}/favicon.ico" data-avatar="${esc(avatar)}" loading="lazy" onerror="favErr(this)">` : '';
   return `<div class="fav${host ? '' : ' noimg'}" style="background:linear-gradient(135deg,hsl(${hue},60%,45%),hsl(${(hue+40)%360},60%,38%))">${img}<span>${letter}</span></div>`;
 }
 
