@@ -306,13 +306,16 @@ function renderTabs() {
   const owners = Object.keys(counts).filter((c) => c.startsWith('@')).sort();
   const order = ['all', ...owners, 'self', 'collect'];
   const names = { all: '全部', self: '自建站', collect: '收藏夹' };
+  if (!order.includes(TAB)) TAB = 'all';
   $('#tabs').innerHTML = order.map((c) => {
     const n = c === 'all' ? ALL.length : (counts[c] || 0);
     if (c !== 'all' && !n) return '';
     return `<button class="tab${TAB === c ? ' on' : ''}" data-c="${c}">${esc(names[c] || c.slice(1))}<span class="n">${n}</span></button>`;
   }).join('');
   $('#tabs').querySelectorAll('.tab').forEach((b) => b.onclick = () => {
-    TAB = b.dataset.c; localStorage.setItem('nav-tab', TAB); render();
+    TAB = b.dataset.c; localStorage.setItem('nav-tab', TAB);
+    document.querySelectorAll('#tabs .tab').forEach((x) => x.classList.toggle('on', x.dataset.c === TAB));
+    render();
   });
 }
 
